@@ -44,13 +44,13 @@ for edge in edges:
             "to": node_id_map[tgt]
         })
 
-output_html = "owlapy_graph_visualization.html"
+output_html = "codegraph_visualization.html"
 
 html_template = f"""
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Owlapy Graph Visualization</title>
+    <title>CodeGraph Visualization</title>
     <meta charset="utf-8">
     <script type="text/javascript" src="https://unpkg.com/vis-network@9.1.2/dist/vis-network.min.js"></script>
     <link href="https://unpkg.com/vis-network@9.1.2/dist/vis-network.min.css" rel="stylesheet" type="text/css" />
@@ -86,8 +86,8 @@ html_template = f"""
 <body>
     <div id="controls">
         <label for="sizeSlider">Number of nodes to display:</label>
-        <input type="range" id="sizeSlider" min="10" max="{len(node_list)}" value="50" step="1" oninput="updateGraph()">
-        <span id="sliderValue">50</span> / {len(node_list)}
+        <input type="range" id="sizeSlider" min="1" max="{len(node_list)}" value="{len(node_list)}" step="1" oninput="updateGraph()">
+        <span id="sliderValue">{len(node_list)}</span> / {len(node_list)}
         <button onclick="showAll()">Show All</button>
     </div>
     <div id="mynetwork"></div>
