@@ -1,42 +1,81 @@
 
+
+"""
+Owlapy Graph Visualizer
+----------------------
+This script reads a graph from 'owlapy_graph.json' and generates an interactive HTML visualization
+using vis-network.js. The output is written to 'owlapy_graph_visualization.html'.
+"""
+
 import json
 import os
 
-graph_json_path = "owlapy_graph.json"
-with open(graph_json_path, "r") as f:
+def load_graph(json_path):
+    """
+    Load the graph data from a JSON file.
+    Args:
+        json_path (str): Path to the JSON file.
+    Returns:
+        tuple: (nodes dict, edges list)
+    """
+    with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
+    nodes = data.get("nodes", {})
+    edges = data.get("edges", [])
+    return nodes, edges
 
-nodes = data.get("nodes", {})
-edges = data.get("edges", [])
-
-# Prepare node and edge lists for JS
-node_list = []
-node_id_map = {}
-for idx, (node_id, node_data) in enumerate(nodes.items()):
+def prepare_nodes(nodes):
+    """
+    Prepare node list and mapping for visualization.
+    Args:
+        nodes (dict): Node data from JSON.
+    Returns:
+        tuple: (node_list, node_id_map)
+    """
+    node_list = []
+    node_id_map = {}
+    for idx, (node_id, node_data) in enumerate(nodes.items()):
         node_id_map[node_id] = idx
         label = node_id.split(":")[-1]
         file = node_id.split(":")[0]
         node_list.append({
-                "id": idx,
-                "label": f"{label}\n({file})",
-                "title": json.dumps(node_data, indent=2),
-                "shape": "dot",
-                "size": 15
+            "id": idx,
+            "label": f"{label}\n({file})",
+            "title": json.dumps(node_data, indent=2),
+            "shape": "dot",
+            "size": 15
         })
+    return node_list, node_id_map
 
-edge_list = []
-for edge in edges:
+def prepare_edges(edges, node_id_map):
+    """
+    Prepare edge list for visualization.
+    Args:
+        edges (list): Edge data from JSON.
+        node_id_map (dict): Mapping from node_id to index.
+    Returns:
+        list: List of edge dicts for visualization.
+    """
+    edge_list = []
+    for edge in edges:
         src = edge.get('source_id')
         tgt = edge.get('target_id')
         if src in node_id_map and tgt in node_id_map:
-                edge_list.append({
-                        "from": node_id_map[src],
-                        "to": node_id_map[tgt]
-                })
+            edge_list.append({
+                "from": node_id_map[src],
+                "to": node_id_map[tgt]
+            })
+    return edge_list
 
-output_html = "owlapy_graph_visualization.html"
-
-html_template = f"""
+def generate_html(node_list, edge_list, output_html):
+    """
+    Generate the HTML visualization file.
+    Args:
+        node_list (list): List of node dicts.
+        edge_list (list): List of edge dicts.
+        output_html (str): Output HTML file path.
+    """
+    html_template = f"""
 <!DOCTYPE html>
 <html>
 <head>
@@ -68,10 +107,12 @@ html_template = f"""
     </div>
     <div id=\"mynetwork\"></div>
     <script type=\"text/javascript\">
+        // All nodes and edges from Python
         const allNodes = {json.dumps(node_list)};
         const allEdges = {json.dumps(edge_list)};
         let network = null;
 
+        // Update the graph based on slider value
         function updateGraph() {{
             const slider = document.getElementById('sizeSlider');
             const n = parseInt(slider.value);
@@ -92,6 +133,7 @@ html_template = f"""
             network = new vis.Network(document.getElementById('mynetwork'), data, options);
         }}
 
+        // Show all nodes/edges
         function showAll() {{
             document.getElementById('sizeSlider').value = allNodes.length;
             updateGraph();
@@ -102,9 +144,28 @@ html_template = f"""
     </script>
 </body>
 </html>
-"""
-
-with open(output_html, "w", encoding="utf-8") as f:
+    """
+    with open(output_html, "w", encoding="utf-8") as f:
         f.write(html_template)
 
-print(f"Visualization generated: {os.path.abspath(output_html)}")
+def main():
+    """
+    Main function to generate the graph visualization HTML.
+    """
+    graph_json_path = "owlapy_graph.json"
+    output_html = "owlapy_graph_visualization.html"
+
+    # Load graph data
+    nodes, edges = load_graph(graph_json_path)
+
+    # Prepare nodes and edges for visualization
+    node_list, node_id_map = prepare_nodes(nodes)
+    edge_list = prepare_edges(edges, node_id_map)
+
+    # Generate HTML visualization
+    generate_html(node_list, edge_list, output_html)
+
+    print(f"Visualization generated: {os.path.abspath(output_html)}")
+
+if __name__ == "__main__":
+    main()
