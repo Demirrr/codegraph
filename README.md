@@ -7,15 +7,13 @@ This project visualizes the CodeGraph framework using an interactive HTML interf
 - **Node Coloring**: Nodes are colored based on their type (`kind`).
 - **Interactive Details**: Click on a node to view its details.
 
-## Preview
-![Graph Visualization](graph_preview.gif)
-
-## How to Use
-1. Run the `visualizer.py` script to generate the HTML file:
-   ```bash
-   python visualizer.py
-   ```
-2. Open the generated `codegraph_visualization.html` file in your browser.
+## How to use Preview
+```bash
+git clone https://github.com/dice-group/owlapy
+python construct.py owlapy
+python visualizer.py
+# open codegraph_visualization.html on a browser
+```
 
 ## Generate Graph GIF
 To generate a GIF of the graph visualization:
@@ -28,8 +26,3 @@ To generate a GIF of the graph visualization:
    node capture_graph.js
    ```
 3. The GIF will be saved as `graph_preview.gif` in the project directory.
-
-## Example
-Below is a preview of the dynamic graph visualization:
-
-![Graph Visualization](graph_preview.gif)

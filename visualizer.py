@@ -2,13 +2,17 @@ import json
 import os
 
 graph_json_path = "owlapy_graph.json"
+# Added a check to handle missing file gracefully
+if not os.path.exists(graph_json_path):
+    print(f"Error: {graph_json_path} not found.")
+    exit()
+
 with open(graph_json_path, "r") as f:
     data = json.load(f)
 
 nodes = data.get("nodes", {})
 edges = data.get("edges", [])
 
-# Define colors for different kinds of nodes
 kind_colors = {
     "module": "#97C2FC",
     "function": "#FFA07A",
@@ -17,7 +21,6 @@ kind_colors = {
     "default": "#D3D3D3"
 }
 
-# Prepare node and edge lists for JS
 node_list = []
 node_id_map = {}
 for idx, (node_id, node_data) in enumerate(nodes.items()):
@@ -35,11 +38,12 @@ for idx, (node_id, node_data) in enumerate(nodes.items()):
     })
 
 edge_list = []
-for edge in edges:
+for i, edge in enumerate(edges):
     src = edge.get('source_id')
     tgt = edge.get('target_id')
     if src in node_id_map and tgt in node_id_map:
         edge_list.append({
+            "id": i, # Added explicit ID for vis.js edge updates
             "from": node_id_map[src],
             "to": node_id_map[tgt]
         })
@@ -96,26 +100,36 @@ html_template = f"""
         const allNodes = {json.dumps(node_list)};
         const allEdges = {json.dumps(edge_list)};
         let network = null;
+        let currentEdges = [];
+        let visEdges = null;
+        let visNodes = null;
 
         function updateGraph() {{
             const slider = document.getElementById('sizeSlider');
             const n = parseInt(slider.value);
             document.getElementById('sliderValue').innerText = n;
-            // Only show nodes/edges up to n
-            const nodes = allNodes.slice(0, n);
-            // Only show edges where both nodes are in the current set
-            const nodeIds = new Set(nodes.map(x => x.id));
-            const edges = allEdges.filter(e => nodeIds.has(e.from) && nodeIds.has(e.to));
-            const data = {{ nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) }};
+            
+            const currentNodes = allNodes.slice(0, n);
+            const nodeIds = new Set(currentNodes.map(x => x.id));
+            currentEdges = allEdges.filter(e => nodeIds.has(e.from) && nodeIds.has(e.to));
+            
+            visNodes = new vis.DataSet(currentNodes);
+            visEdges = new vis.DataSet(currentEdges.map(e => Object.assign({{color: {{color: '#AAAAAA'}}}}, e)));
+            
+            const data = {{ nodes: visNodes, edges: visEdges }};
             const options = {{
                 nodes: {{
                     font: {{ color: '#FFFFFF', size: 14 }},
                     shape: 'dot',
                     size: 15
                 }},
-                edges: {{ color: '#AAAAAA' }},
+                edges: {{ 
+                    color: '#AAAAAA',
+                    arrows: 'to'  // <-- ADDED THIS LINE to display directional arrows
+                }},
                 physics: {{ enabled: true, stabilization: false }},
-                layout: {{ improvedLayout: true }}
+                layout: {{ improvedLayout: true }},
+                interaction: {{ selectConnectedEdges: false }} 
             }};
             if (network) network.destroy();
             network = new vis.Network(document.getElementById('mynetwork'), data, options);
@@ -129,9 +143,27 @@ html_template = f"""
                         detailsDiv.innerHTML = `<h3>Node Details</h3><pre>${{nodeData.title}}</pre>`;
                         detailsDiv.style.display = 'block';
                     }}
+                    highlightOutgoingEdges(nodeId);
                 }} else {{
                     document.getElementById('nodeDetails').style.display = 'none';
+                    resetEdgeColors();
                 }}
+            }});
+        }}
+
+        function highlightOutgoingEdges(nodeId) {{
+            resetEdgeColors();
+            const highlightColor = '#FFD700'; 
+            currentEdges.forEach(edge => {{
+                if (edge.from === nodeId) {{
+                    visEdges.update({{ id: edge.id, width: 3, color: {{ color: highlightColor }} }});
+                }}
+            }});
+        }}
+
+        function resetEdgeColors() {{
+            currentEdges.forEach(edge => {{
+                visEdges.update({{ id: edge.id, width: 1, color: {{ color: '#AAAAAA' }} }});
             }});
         }}
 
@@ -140,7 +172,6 @@ html_template = f"""
             updateGraph();
         }}
 
-        // Initial draw
         updateGraph();
     </script>
 </body>
